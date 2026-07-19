@@ -201,39 +201,8 @@ class PositionEnv(gym.Env):
         return obs.astype(np.float32)
 
     def _compute_reward(self, norm_action, acc_body, ft, att_des):
-        # FIX 2: dense exponential reward, no precision bonus
-        pos     = self.state[0:3]
-        vel     = self.state[3:6]
-        att     = self.state[6:9]
-        pos_des, vel_des, _ = self.get_trajectory(self.time, self.trajectory_scale)
 
-        pos_err = np.linalg.norm(pos - pos_des)
-        vel_err = np.linalg.norm(vel - vel_des)
 
-        pos_r    = 10.0 * np.exp(-2.0 * pos_err)
-        vel_p    = -0.5 * (vel_err / self.sys_cfg.MAX_VELOCITY)**2
-        att_norm = np.deg2rad(15.0)
-        att_p    = -1.0 * np.sum(np.square(att[0:2] / att_norm))
-        thrust_err  = abs(ft - self.sys_cfg.MASS*self.sys_cfg.GRAVITY) / \
-                      (self.sys_cfg.MASS*self.sys_cfg.GRAVITY)
-        survival_r  = 1.0 * np.exp(-3.0 * thrust_err)
-
-        smooth_p = 0.0
-        if self.prev_action is not None:
-            smooth_p = -0.05 * np.sum(np.square(norm_action - self.prev_action))
-
-        total = 0.05 * (pos_r + vel_p + att_p + survival_r + smooth_p)
-
-        info = {
-            'pos_error':   pos_err*1000,
-            'vel_error':   vel_err,
-            'pos_error_m': pos_err,
-            'reward_components': {
-                'position':   pos_r, 'velocity': vel_p,
-                'attitude':   att_p, 'survival': survival_r,
-                'smoothness': smooth_p, 'total': total
-            }
-        }
         return total, info
 
     def _check_done(self):
